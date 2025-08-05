@@ -1,7 +1,7 @@
-class OnizukaCli < Formula
-  desc "CLI tool for Biolevate operations"
+class OnizukaCliAT103 < Formula
+  desc "CLI tool for Biolevate operations (version 1.0.3)"
   homepage "https://github.com/Biolevate/biolevops-onizuka"
-  version "latest"
+  version "1.0.3"
 
   on_macos do
     if Hardware::CPU.arm?
@@ -30,4 +30,4 @@ class OnizukaCli < Formula
   test do
     system "#{bin}/gto", "--version"
   end
-end 
+end
