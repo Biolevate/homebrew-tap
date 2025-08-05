@@ -1,0 +1,257 @@
+name: Update Homebrew Formula and Create Release
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to generate formula for'
+        required: true
+        type: string
+      darwin_arm64_sha256:
+        description: 'SHA256 for darwin-arm64'
+        required: false
+        type: string
+      darwin_amd64_sha256:
+        description: 'SHA256 for darwin-amd64'
+        required: false
+        type: string
+      linux_arm64_sha256:
+        description: 'SHA256 for linux-arm64'
+        required: false
+        type: string
+      linux_amd64_sha256:
+        description: 'SHA256 for linux-amd64'
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to generate formula for'
+        required: true
+        type: string
+      darwin_arm64_sha256:
+        description: 'SHA256 for darwin-arm64'
+        required: false
+        type: string
+      darwin_amd64_sha256:
+        description: 'SHA256 for darwin-amd64'
+        required: false
+        type: string
+      linux_arm64_sha256:
+        description: 'SHA256 for linux-arm64'
+        required: false
+        type: string
+      linux_amd64_sha256:
+        description: 'SHA256 for linux-amd64'
+        required: false
+        type: string
+
+jobs:
+  # Ce job crée la release GitHub dans ce repo (public) et met à jour la formule
+  update-homebrew-tap:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Setup git for workflow
+        run: |
+          # Configure git for the workflow
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Ensure we're on main branch
+          git checkout main
+          git pull origin main
+
+      - name: Extract version from input
+        id: extract-version
+        run: |
+          VERSION="${{ inputs.version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Note about release creation
+        run: |
+          echo "Note: Release will be created by the main repo"
+          echo "This workflow will only update the formula with the provided SHA256"
+
+      - name: Calculate or use SHA256 checksums
+        id: calculate-sha256
+        run: |
+          VERSION=${{ steps.extract-version.outputs.version }}
+          
+          if [ -n "${{ inputs.darwin_arm64_sha256 }}" ]; then
+            # Use provided checksums from workflow_call
+            echo "Using provided checksums for version $VERSION"
+            echo "darwin-arm64-sha256=${{ inputs.darwin_arm64_sha256 }}" >> $GITHUB_OUTPUT
+            echo "darwin-amd64-sha256=${{ inputs.darwin_amd64_sha256 }}" >> $GITHUB_OUTPUT
+            echo "linux-arm64-sha256=${{ inputs.linux_arm64_sha256 }}" >> $GITHUB_OUTPUT
+            echo "linux-amd64-sha256=${{ inputs.linux_amd64_sha256 }}" >> $GITHUB_OUTPUT
+          else
+            # Calculate checksums from GitHub Releases
+            echo "Calculating SHA256 checksums for version $VERSION..."
+            
+            # Download from GitHub Releases to calculate checksums
+            curl -L -o gto-darwin-arm64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-arm64.tar.gz"
+            SHA256_DARWIN_ARM64=$(shasum -a 256 gto-darwin-arm64.tar.gz | cut -d' ' -f1)
+            echo "darwin-arm64-sha256=$SHA256_DARWIN_ARM64" >> $GITHUB_OUTPUT
+            
+            curl -L -o gto-darwin-amd64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-amd64.tar.gz"
+            SHA256_DARWIN_AMD64=$(shasum -a 256 gto-darwin-amd64.tar.gz | cut -d' ' -f1)
+            echo "darwin-amd64-sha256=$SHA256_DARWIN_AMD64" >> $GITHUB_OUTPUT
+            
+            curl -L -o gto-linux-arm64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-arm64.tar.gz"
+            SHA256_LINUX_ARM64=$(shasum -a 256 gto-linux-arm64.tar.gz | cut -d' ' -f1)
+            echo "linux-arm64-sha256=$SHA256_LINUX_ARM64" >> $GITHUB_OUTPUT
+            
+            curl -L -o gto-linux-amd64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-amd64.tar.gz"
+            SHA256_LINUX_AMD64=$(shasum -a 256 gto-linux-amd64.tar.gz | cut -d' ' -f1)
+            echo "linux-amd64-sha256=$SHA256_LINUX_AMD64" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "SHA256 checksums ready"
+
+      - name: Update latest formula
+        run: |
+          VERSION=${{ steps.extract-version.outputs.version }}
+          DARWIN_ARM64_SHA256=${{ steps.calculate-sha256.outputs.darwin-arm64-sha256 }}
+          DARWIN_AMD64_SHA256=${{ steps.calculate-sha256.outputs.darwin-amd64-sha256 }}
+          LINUX_ARM64_SHA256=${{ steps.calculate-sha256.outputs.linux-arm64-sha256 }}
+          LINUX_AMD64_SHA256=${{ steps.calculate-sha256.outputs.linux-amd64-sha256 }}
+          
+          # Update URLs to point to GitHub Releases with correct file extensions
+          # Use awk to update URLs with proper file extensions
+          awk -v version="$VERSION" '
+          /on_macos do/ { in_macos = 1; print; next }
+          /on_linux do/ { in_macos = 0; in_linux = 1; print; next }
+          /if Hardware::CPU.arm?/ { in_arm = 1; print; next }
+          /else/ { in_arm = 0; print; next }
+          /url "https:\/\/github.com\/Biolevate\/homebrew-tap\/releases\/download\// {
+            if (in_macos && in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-arm64.tar.gz\""
+            } else if (in_macos && !in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-amd64.tar.gz\""
+            } else if (in_linux && in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-arm64.tar.gz\""
+            } else if (in_linux && !in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-amd64.tar.gz\""
+            }
+            next
+          }
+          { print }
+          ' Formula/onizuka-cli.rb > Formula/onizuka-cli.rb.tmp && mv Formula/onizuka-cli.rb.tmp Formula/onizuka-cli.rb
+          
+          # Update SHA256 checksums
+          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$DARWIN_ARM64_SHA256\"/" Formula/onizuka-cli.rb
+          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$DARWIN_AMD64_SHA256\"/" Formula/onizuka-cli.rb
+          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$LINUX_ARM64_SHA256\"/" Formula/onizuka-cli.rb
+          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$LINUX_AMD64_SHA256\"/" Formula/onizuka-cli.rb
+          
+          echo "Latest formula updated to point to version $VERSION"
+
+      - name: Generate specific version formula
+        if: steps.extract-version.outputs.version != 'latest' && steps.extract-version.outputs.version != ''
+        run: |
+          VERSION=${{ steps.extract-version.outputs.version }}
+          DARWIN_ARM64_SHA256=${{ steps.calculate-sha256.outputs.darwin-arm64-sha256 }}
+          DARWIN_AMD64_SHA256=${{ steps.calculate-sha256.outputs.darwin-amd64-sha256 }}
+          LINUX_ARM64_SHA256=${{ steps.calculate-sha256.outputs.linux-arm64-sha256 }}
+          LINUX_AMD64_SHA256=${{ steps.calculate-sha256.outputs.linux-amd64-sha256 }}
+          
+          # Convert version to class suffix (e.g., 1.0.12 -> AT1012)
+          CLASS_SUFFIX=$(echo $VERSION | sed 's/\.//g')
+          FORMULA_FILE="Formula/onizuka-cli@$VERSION.rb"
+          
+          cat > "$FORMULA_FILE" << EOF
+          class OnizukaCliAT$CLASS_SUFFIX < Formula
+            desc "CLI tool for Biolevate operations (version $VERSION)"
+            homepage "https://github.com/Biolevate/biolevops-onizuka"
+            version "$VERSION"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-arm64.tar.gz"
+                sha256 "$DARWIN_ARM64_SHA256"
+              else
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-amd64.tar.gz"
+                sha256 "$DARWIN_AMD64_SHA256"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-arm64.tar.gz"
+                sha256 "$LINUX_ARM64_SHA256"
+              else
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-amd64.tar.gz"
+                sha256 "$LINUX_AMD64_SHA256"
+              end
+            end
+
+            def install
+              bin.install "gto"
+            end
+
+            test do
+              system "#{bin}/gto", "--version"
+            end
+          end
+          EOF
+          
+          echo "Generated specific formula: $FORMULA_FILE"
+
+      - name: Test formula locally
+        run: |
+          echo "Testing formula validation..."
+          
+          # Vérifier que le fichier existe
+          if [ ! -f "Formula/onizuka-cli.rb" ]; then
+            echo "❌ Formula file not found"
+            exit 1
+          fi
+          
+          # Vérifier les URLs
+          if grep -q "https://github.com/Biolevate/homebrew-tap/releases/download/" Formula/onizuka-cli.rb; then
+            echo "✅ URLs point to GitHub Releases"
+          else
+            echo "❌ URLs do not point to GitHub Releases"
+            exit 1
+          fi
+          
+          # Vérifier les SHA256
+          SHA256_COUNT=$(grep -c "sha256" Formula/onizuka-cli.rb)
+          if [ "$SHA256_COUNT" -eq 4 ]; then
+            echo "✅ All 4 SHA256 checksums are present"
+          else
+            echo "❌ Expected 4 SHA256 checksums, found $SHA256_COUNT"
+            exit 1
+          fi
+          
+          echo "✅ Formula validation completed successfully for version ${{ steps.extract-version.outputs.version }}"
+
+      - name: Clean temporary files
+        run: |
+          # Remove temporary downloaded files
+          rm -f gto-*.tar.gz gto-*.zip artifacts/*
+          echo "Cleaned temporary files"
+
+      - name: Commit and push changes
+        run: |
+          git add Formula/onizuka-cli.rb
+          
+          # Add specific version formula if it exists
+          VERSION=${{ steps.extract-version.outputs.version }}
+          if [ "$VERSION" != "latest" ] && [ "$VERSION" != "" ] && [ -f "Formula/onizuka-cli@$VERSION.rb" ]; then
+            git add "Formula/onizuka-cli@$VERSION.rb"
+            git commit -m "Update onizuka-cli to version $VERSION (latest + specific)"
+          else
+            git commit -m "Update onizuka-cli latest formula"
+          fi
+          
+          # Push directly to main branch
+          git push origin main 
