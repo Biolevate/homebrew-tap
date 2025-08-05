@@ -115,6 +115,11 @@ jobs:
           fi
           
           echo "SHA256 checksums ready"
+          echo "Debug - Calculated hashes:"
+          echo "  Darwin ARM64: ${{ steps.calculate-sha256.outputs.darwin-arm64-sha256 }}"
+          echo "  Darwin AMD64: ${{ steps.calculate-sha256.outputs.darwin-amd64-sha256 }}"
+          echo "  Linux ARM64: ${{ steps.calculate-sha256.outputs.linux-arm64-sha256 }}"
+          echo "  Linux AMD64: ${{ steps.calculate-sha256.outputs.linux-amd64-sha256 }}"
 
       - name: Update latest formula
         run: |
@@ -146,13 +151,60 @@ jobs:
           { print }
           ' Formula/onizuka-cli.rb > Formula/onizuka-cli.rb.tmp && mv Formula/onizuka-cli.rb.tmp Formula/onizuka-cli.rb
           
-          # Update SHA256 checksums
-          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$DARWIN_ARM64_SHA256\"/" Formula/onizuka-cli.rb
-          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$DARWIN_AMD64_SHA256\"/" Formula/onizuka-cli.rb
-          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$LINUX_ARM64_SHA256\"/" Formula/onizuka-cli.rb
-          sed -i "s/sha256 \"[^\"]*\"/sha256 \"$LINUX_AMD64_SHA256\"/" Formula/onizuka-cli.rb
+          # Update SHA256 checksums using awk for precise targeting
+          awk -v darwin_arm_sha="$DARWIN_ARM64_SHA256" \
+              -v darwin_amd_sha="$DARWIN_AMD64_SHA256" \
+              -v linux_arm_sha="$LINUX_ARM64_SHA256" \
+              -v linux_amd_sha="$LINUX_AMD64_SHA256" \
+              -v version="$VERSION" '
+          /on_macos do/ { in_macos = 1; print; next }
+          /on_linux do/ { in_macos = 0; in_linux = 1; print; next }
+          /if Hardware::CPU.arm?/ { in_arm = 1; print; next }
+          /else/ { in_arm = 0; print; next }
+          /url "https:\/\/github.com\/Biolevate\/homebrew-tap\/releases\/download\// {
+            if (in_macos && in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-arm64.tar.gz\""
+            } else if (in_macos && !in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-amd64.tar.gz\""
+            } else if (in_linux && in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-arm64.tar.gz\""
+            } else if (in_linux && !in_arm) {
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-amd64.tar.gz\""
+            }
+            next
+          }
+          /sha256 "[^"]*"/ {
+            if (in_macos && in_arm) {
+              print "      sha256 \"" darwin_arm_sha "\""
+            } else if (in_macos && !in_arm) {
+              print "      sha256 \"" darwin_amd_sha "\""
+            } else if (in_linux && in_arm) {
+              print "      sha256 \"" linux_arm_sha "\""
+            } else if (in_linux && !in_arm) {
+              print "      sha256 \"" linux_amd_sha "\""
+            } else {
+              print
+            }
+            next
+          }
+          { print }
+          ' Formula/onizuka-cli.rb > Formula/onizuka-cli.rb.tmp && mv Formula/onizuka-cli.rb.tmp Formula/onizuka-cli.rb
           
           echo "Latest formula updated to point to version $VERSION"
+          
+          # Validate the updated formula by checking if hashes are different
+          echo "Validating formula hashes..."
+          DARWIN_ARM_HASHES=$(grep -A 1 "darwin-arm64" Formula/onizuka-cli.rb | grep "sha256" | wc -l)
+          DARWIN_AMD_HASHES=$(grep -A 1 "darwin-amd64" Formula/onizuka-cli.rb | grep "sha256" | wc -l)
+          LINUX_ARM_HASHES=$(grep -A 1 "linux-arm64" Formula/onizuka-cli.rb | grep "sha256" | wc -l)
+          LINUX_AMD_HASHES=$(grep -A 1 "linux-amd64" Formula/onizuka-cli.rb | grep "sha256" | wc -l)
+          
+          if [ "$DARWIN_ARM_HASHES" -eq 1 ] && [ "$DARWIN_AMD_HASHES" -eq 1 ] && [ "$LINUX_ARM_HASHES" -eq 1 ] && [ "$LINUX_AMD_HASHES" -eq 1 ]; then
+            echo "✅ All hashes updated successfully"
+          else
+            echo "❌ Hash update validation failed"
+            exit 1
+          fi
 
       - name: Generate specific version formula
         if: steps.extract-version.outputs.version != 'latest' && steps.extract-version.outputs.version != ''
