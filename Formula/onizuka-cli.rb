@@ -1,7 +1,7 @@
 class OnizukaCli < Formula
   desc "CLI tool for Biolevate operations"
   homepage "https://github.com/Biolevate/biolevops-onizuka"
-  version "latest"
+  version "1.0.4"
 
   on_macos do
     if Hardware::CPU.arm?

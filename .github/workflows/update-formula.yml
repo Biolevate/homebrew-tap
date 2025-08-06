@@ -129,9 +129,13 @@ jobs:
           LINUX_ARM64_SHA256=${{ steps.calculate-sha256.outputs.linux-arm64-sha256 }}
           LINUX_AMD64_SHA256=${{ steps.calculate-sha256.outputs.linux-amd64-sha256 }}
           
-          # Update URLs to point to GitHub Releases with correct file extensions
-          # Use awk to update URLs with proper file extensions
+          # Update version and URLs to point to GitHub Releases with correct file extensions
+          # Use awk to update version and URLs with proper file extensions
           awk -v version="$VERSION" '
+          /version "/ {
+            print "  version \"" version "\""
+            next
+          }
           /on_macos do/ { in_macos = 1; print; next }
           /on_linux do/ { in_macos = 0; in_linux = 1; print; next }
           /if Hardware::CPU.arm?/ { in_arm = 1; print; next }
