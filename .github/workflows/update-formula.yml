@@ -97,20 +97,20 @@ jobs:
             echo "Calculating SHA256 checksums for version $VERSION..."
             
             # Download from GitHub Releases to calculate checksums
-            curl -L -o gto-darwin-arm64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-arm64.tar.gz"
-            SHA256_DARWIN_ARM64=$(shasum -a 256 gto-darwin-arm64.tar.gz | cut -d' ' -f1)
+            curl -L -o ozk-darwin-arm64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-darwin-arm64.tar.gz"
+            SHA256_DARWIN_ARM64=$(shasum -a 256 ozk-darwin-arm64.tar.gz | cut -d' ' -f1)
             echo "darwin-arm64-sha256=$SHA256_DARWIN_ARM64" >> $GITHUB_OUTPUT
             
-            curl -L -o gto-darwin-amd64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-amd64.tar.gz"
-            SHA256_DARWIN_AMD64=$(shasum -a 256 gto-darwin-amd64.tar.gz | cut -d' ' -f1)
+            curl -L -o ozk-darwin-amd64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-darwin-amd64.tar.gz"
+            SHA256_DARWIN_AMD64=$(shasum -a 256 ozk-darwin-amd64.tar.gz | cut -d' ' -f1)
             echo "darwin-amd64-sha256=$SHA256_DARWIN_AMD64" >> $GITHUB_OUTPUT
             
-            curl -L -o gto-linux-arm64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-arm64.tar.gz"
-            SHA256_LINUX_ARM64=$(shasum -a 256 gto-linux-arm64.tar.gz | cut -d' ' -f1)
+            curl -L -o ozk-linux-arm64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-linux-arm64.tar.gz"
+            SHA256_LINUX_ARM64=$(shasum -a 256 ozk-linux-arm64.tar.gz | cut -d' ' -f1)
             echo "linux-arm64-sha256=$SHA256_LINUX_ARM64" >> $GITHUB_OUTPUT
             
-            curl -L -o gto-linux-amd64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-amd64.tar.gz"
-            SHA256_LINUX_AMD64=$(shasum -a 256 gto-linux-amd64.tar.gz | cut -d' ' -f1)
+            curl -L -o ozk-linux-amd64.tar.gz "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-linux-amd64.tar.gz"
+            SHA256_LINUX_AMD64=$(shasum -a 256 ozk-linux-amd64.tar.gz | cut -d' ' -f1)
             echo "linux-amd64-sha256=$SHA256_LINUX_AMD64" >> $GITHUB_OUTPUT
           fi
           
@@ -142,13 +142,13 @@ jobs:
           /else/ { in_arm = 0; print; next }
           /url "https:\/\/github.com\/Biolevate\/homebrew-tap\/releases\/download\// {
             if (in_macos && in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-arm64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-darwin-arm64.tar.gz\""
             } else if (in_macos && !in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-amd64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-darwin-amd64.tar.gz\""
             } else if (in_linux && in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-arm64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-linux-arm64.tar.gz\""
             } else if (in_linux && !in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-amd64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-linux-amd64.tar.gz\""
             }
             next
           }
@@ -167,13 +167,13 @@ jobs:
           /else/ { in_arm = 0; print; next }
           /url "https:\/\/github.com\/Biolevate\/homebrew-tap\/releases\/download\// {
             if (in_macos && in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-arm64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-darwin-arm64.tar.gz\""
             } else if (in_macos && !in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-darwin-amd64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-darwin-amd64.tar.gz\""
             } else if (in_linux && in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-arm64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-linux-arm64.tar.gz\""
             } else if (in_linux && !in_arm) {
-              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/gto-linux-amd64.tar.gz\""
+              print "      url \"https://github.com/Biolevate/homebrew-tap/releases/download/cli-v" version "/ozk-linux-amd64.tar.gz\""
             }
             next
           }
@@ -231,30 +231,30 @@ jobs:
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-arm64.tar.gz"
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-darwin-arm64.tar.gz"
                 sha256 "$DARWIN_ARM64_SHA256"
               else
-                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-darwin-amd64.tar.gz"
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-darwin-amd64.tar.gz"
                 sha256 "$DARWIN_AMD64_SHA256"
               end
             end
 
             on_linux do
               if Hardware::CPU.arm?
-                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-arm64.tar.gz"
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-linux-arm64.tar.gz"
                 sha256 "$LINUX_ARM64_SHA256"
               else
-                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/gto-linux-amd64.tar.gz"
+                url "https://github.com/Biolevate/homebrew-tap/releases/download/cli-v$VERSION/ozk-linux-amd64.tar.gz"
                 sha256 "$LINUX_AMD64_SHA256"
               end
             end
 
             def install
-              bin.install "gto"
+              bin.install "ozk"
             end
 
             test do
-              system "#{bin}/gto", "--version"
+              system "#{bin}/ozk", "--version"
             end
           end
           EOF
@@ -293,7 +293,7 @@ jobs:
       - name: Clean temporary files
         run: |
           # Remove temporary downloaded files
-          rm -f gto-*.tar.gz gto-*.zip artifacts/*
+          rm -f ozk-*.tar.gz ozk-*.zip artifacts/*
           echo "Cleaned temporary files"
 
       - name: Commit and push changes
