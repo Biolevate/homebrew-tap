@@ -1,5 +1,5 @@
-class OnizukaCli < Formula
-  desc "CLI tool for Biolevate operations"
+class OnizukaCliAT1039 < Formula
+  desc "CLI tool for Biolevate operations (version 1.0.39)"
   homepage "https://github.com/Biolevate/biolevops-onizuka"
   version "1.0.39"
 
@@ -30,4 +30,4 @@ class OnizukaCli < Formula
   test do
     system "#{bin}/ozk", "--version"
   end
-end 
+end
